@@ -1,11 +1,7 @@
 ﻿using HtmlAgilityPack;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using System.Globalization;
 using System.Xml.XPath;
-using Tabula;
-using Tabula.Detectors;
-using Tabula.Extractors;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
 
@@ -52,29 +48,12 @@ public sealed class AviaService : IAviaService {
         var doc = new HtmlDocument();
         await using var htmlStream = await _httpClient.GetStreamAsync(_relativeFetchUrl, cancellationToken);
         doc.Load(htmlStream);
-        
+
         var pdfNode = doc.DocumentNode.SelectSingleNode(_pdfLinkXPath);
         if (pdfNode == null) {
             return null;
         }
         return pdfNode.Attributes["href"].Value;
-    }
-
-    private RawTable? GetAviaPriceTable(PdfDocument pdfDocument) {
-        var oe = new ObjectExtractor(pdfDocument);
-        PageArea page = oe.Extract(1);
-        // detect candidate table zones
-        var detector = new SimpleNurminenDetectionAlgorithm();
-        var regions = detector.Detect(page);
-        if (regions.Count == 0) return null;
-        // take first candidate area
-        var tabularTable = new BasicExtractionAlgorithm()
-            .Extract(page.GetArea(regions[0].BoundingBox))
-            .FirstOrDefault();
-        if (tabularTable == null) return null;
-        return new RawTable(tabularTable.Rows
-            .Select(x => x.Select(y => y.GetText()).ToList())
-            .ToList(), tabularTable.ColumnCount);
     }
 
     private RawTable? GetAviaPriceTableV2(PdfDocument pdfDocument) {
@@ -84,7 +63,7 @@ public sealed class AviaService : IAviaService {
 
         if (pdfDocument.NumberOfPages == 0) return null;
         var rows = new List<List<string>>(20);
-        
+
         int rowIdx = 0;
         double? lastY = null;
         foreach (Word word in pdfDocument.GetPage(1).GetWords()) {
@@ -139,7 +118,7 @@ public sealed class AviaService : IAviaService {
     private DateOnly ParseDate(string date) {
         var parts = date.Split('.');
         var monthName = parts[0];
-        if (!int.TryParse(parts[1], out var monthDay)) {
+        if (!DateOnly.TryParseExact(parts[1], "yy", _parseCulture, DateTimeStyles.None, out var parsedYearDate)) {
             throw new AviaServiceException($"Failed to parse date '{date}' from PDF table");
         }
         var monthNum = monthName switch {
@@ -157,7 +136,7 @@ public sealed class AviaService : IAviaService {
             "Dez" => 12,
             _ => throw new AviaServiceException($"Failed to parse date '{date}' from PDF table")
         };
-        return new DateOnly(DateTime.UtcNow.Year, monthNum, monthDay);
+        return new DateOnly(parsedYearDate.Year, monthNum, 1);
     }
 
     internal sealed record RawTable(IReadOnlyList<IReadOnlyList<string>> Rows, int ColumnCount);
