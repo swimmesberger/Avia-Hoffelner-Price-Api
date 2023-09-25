@@ -1,11 +1,5 @@
-@Avia_Hoffelner_Price_Api_HostAddress = http://localhost:5182
-
-GET {{Avia_Hoffelner_Price_Api_HostAddress}}/todos/
-Accept: application/json
-
-###
-
-GET {{Avia_Hoffelner_Price_Api_HostAddress}}/todos/1
+// Basic GET request for avia data parsing
+GET http://localhost:5182/avia/
 Accept: application/json
 
 ###

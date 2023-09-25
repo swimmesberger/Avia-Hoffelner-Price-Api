@@ -1,9 +1,14 @@
-﻿namespace dev.wimmesberger.avia.price.tracker.Avia;
+﻿using dev.wimmesberger.avia.price.tracker.Avia.Contract;
+
+namespace dev.wimmesberger.avia.price.tracker.Avia;
 
 public static class AviaServiceCollectionExtensions {
     public static IHostApplicationBuilder AddAviaServices(this IHostApplicationBuilder builder) {
         builder.Services.Configure<AviaConfiguration>(builder.Configuration.GetSection("Avia"));
-        builder.Services.AddHttpClient<IAviaService, AviaService>();
+        builder.Services.Configure<AviaParsingConfiguration>(builder.Configuration.GetSection("Avia:Parsing"));
+        builder.Services.AddHttpClient<IAviaPdfProvider, AviaPdfProvider>();
+        builder.Services.AddTransient<IAviaPdfParser, AviaPdfParser>();
+        builder.Services.AddTransient<IAviaService, AviaService>();
         builder.Services.ConfigureHttpJsonOptions(options => {
             options.SerializerOptions.TypeInfoResolverChain.Insert(0, AviaJsonSerializerContext.Default);
         });

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace dev.wimmesberger.avia.price.tracker.Avia;
+namespace dev.wimmesberger.avia.price.tracker.Avia.Contract;
 
 public sealed record class AviaData {
     public IReadOnlyList<AviaDataEntry> Entries { get; init; } = ImmutableArray<AviaDataEntry>.Empty;

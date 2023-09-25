@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using dev.wimmesberger.avia.price.tracker.Avia.Contract;
+using System.Text.Json.Serialization;
 
 namespace dev.wimmesberger.avia.price.tracker.Avia;
 
