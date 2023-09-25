@@ -5,7 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>dev.wimmesberger.avia.price.tracker</RootNamespace>
-        <InvariantGlobalization>false</InvariantGlobalization>
+        <InvariantGlobalization>true</InvariantGlobalization>
         <PublishAot>true</PublishAot>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <!-- Fixes issues currently in rc1 (fixed in rc2) -->

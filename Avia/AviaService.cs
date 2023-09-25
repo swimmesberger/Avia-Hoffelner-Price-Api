@@ -11,19 +11,25 @@ public sealed class AviaService : IAviaService {
     private readonly ILogger _logger;
     private readonly Uri _relativeFetchUrl;
     private readonly HttpClient _httpClient;
-    private readonly CultureInfo _parseCulture;
+    private readonly AviaParsingConfiguration _parsingConfiguration;
+    private readonly NumberFormatInfo _priceFormat;
     private readonly XPathExpression _pdfLinkXPath;
 
     public AviaService(ILogger<AviaService> logger, IOptions<AviaConfiguration> configurationOptions, HttpClient httpClient) {
         _logger = logger;
         _httpClient = httpClient;
         var configuration = configurationOptions.Value;
+        _parsingConfiguration = configuration.Parsing;
         if (!Uri.TryCreate(configuration.FetchUrl, UriKind.Absolute, out var fetchUrl)) {
             throw new AviaServiceException($"Failed to parse fetch url '{configuration.FetchUrl}' from configuration");
         }
         _httpClient.BaseAddress = new Uri(fetchUrl.GetLeftPart(UriPartial.Authority));
         _relativeFetchUrl = _httpClient.BaseAddress.MakeRelativeUri(fetchUrl);
-        _parseCulture = new CultureInfo(configuration.Culture);
+        // do not use culture and instead set fixed format to make the application InvariantGlobalization (AOT)
+        _priceFormat = new NumberFormatInfo {
+            NumberDecimalSeparator = ",",
+            NumberGroupSeparator = "."
+        };
         _pdfLinkXPath = XPathExpression.Compile(configuration.PdfXPath);
         _pdfLinkXPath.SetContext(new AviaXsltContext());
     }
@@ -57,10 +63,6 @@ public sealed class AviaService : IAviaService {
     }
 
     private RawTable? GetAviaPriceTableV2(PdfDocument pdfDocument) {
-        const int yDeltaForRowChange = 10;
-        // pdfs start from bottom (top = largest y)
-        const int yCoordTableStart = 110;
-
         if (pdfDocument.NumberOfPages == 0) return null;
         var rows = new List<List<string>>(20);
 
@@ -68,8 +70,8 @@ public sealed class AviaService : IAviaService {
         double? lastY = null;
         foreach (Word word in pdfDocument.GetPage(1).GetWords()) {
             var topLeftOfWordY = word.BoundingBox.TopLeft.Y;
-            if (topLeftOfWordY > yCoordTableStart) continue;
-            if (lastY != null && (lastY-topLeftOfWordY) > yDeltaForRowChange) {
+            if (topLeftOfWordY > _parsingConfiguration.MaximumYCoord) continue;
+            if (lastY != null && (lastY-topLeftOfWordY) > _parsingConfiguration.MinimumYCoordDelta) {
                 rowIdx++;
             }
             lastY = topLeftOfWordY;
@@ -106,10 +108,10 @@ public sealed class AviaService : IAviaService {
         var grossPriceText = table.Rows[1][columnIdx];
         var netPriceText = table.Rows[2][columnIdx];
         var dateOfMonth = ParseDate(dateText);
-        if (!decimal.TryParse(grossPriceText, _parseCulture, out var grossPriceCtkWH)) {
+        if (!decimal.TryParse(grossPriceText, _priceFormat, out var grossPriceCtkWH)) {
             throw new AviaServiceException($"Failed to parse gross price '{grossPriceText}' from PDF table");
         }
-        if (!decimal.TryParse(netPriceText, _parseCulture, out var netPriceCtkwH)) {
+        if (!decimal.TryParse(netPriceText, _priceFormat, out var netPriceCtkwH)) {
             throw new AviaServiceException($"Failed to parse net price '{netPriceText}' from PDF table");
         }
         return new AviaDataEntry(dateOfMonth, grossPriceCtkWH, netPriceCtkwH);
@@ -118,17 +120,20 @@ public sealed class AviaService : IAviaService {
     private DateOnly ParseDate(string date) {
         var parts = date.Split('.');
         var monthName = parts[0];
-        if (!DateOnly.TryParseExact(parts[1], "yy", _parseCulture, DateTimeStyles.None, out var parsedYearDate)) {
+        if (!DateOnly.TryParseExact(parts[1], "yy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedYearDate)) {
             throw new AviaServiceException($"Failed to parse date '{date}' from PDF table");
         }
+        // the pdf uses https://unicode-org.github.io/icu/userguide/format_parse/datetime/#date-field-symbol-table LLL formatting
+        // LLL and MMM differs for some german months regarding 3 or 4 letters
+        // LLL is not supported in .NET currently
         var monthNum = monthName switch {
             "Jän" => 1,
             "Feb" => 2,
-            "Mär" => 3,
+            "Mär" => 3, // März in locale
             "Apr" => 4,
             "Mai" => 5,
-            "Jun" => 6,
-            "Jul" => 7,
+            "Jun" => 6, // Juni in locale
+            "Jul" => 7, // Juli in locale
             "Aug" => 8,
             "Sep" => 9,
             "Okt" => 10,
