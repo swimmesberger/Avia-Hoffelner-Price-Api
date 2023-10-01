@@ -4,6 +4,7 @@ Currently there is no caching layer, therefore for every GET on the endpoint a G
 
 ## Example
 Following shows an example of a PDF to JSON conversion done by this service.
+GET /avia/entries
 ![Pdf Example](./docs/images/price-pdf.png?raw=true)
 
 ````json
@@ -87,4 +88,30 @@ Following shows an example of a PDF to JSON conversion done by this service.
   ],
   "createdAt": "2023-09-25T18:58:02.870482+00:00"
 }
+````
+
+When GET 'avia/entries/today' is called only the entry of the current month is shown. This can be helpful for external systems that regularly query the endpoint like home-assistant.
+An example configuration for home-assistant could look like the following:
+````yaml
+rest:
+    - resource: "http://price-service.local/avia/entries/today"
+      scan_interval: 86400
+      method: GET
+      headers:
+          Accept: application/json
+          Content-Type: application/json
+      sensor:
+          - name: "GrossPriceCtkWH"
+            unique_id: "20db483f-270b-49a5-a81f-cebc0f235b17"
+            device_class: monetary
+            value_template: "{{ value_json.grossPriceCtkWH/100.0 }}"
+            force_update: true
+            unit_of_measurement: "€"
+
+          - name: "NetPriceCtkwH"
+            unique_id: "1f9be0c9-e056-4677-af44-3d635d236c67"
+            device_class: monetary
+            value_template: "{{ value_json.netPriceCtkwH/100.0 }}"
+            force_update: true
+            unit_of_measurement: "€"
 ````

@@ -12,7 +12,7 @@ WORKDIR "/src/"
 RUN dotnet build "Avia-Hoffelner-Price-Api.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "Avia-Hoffelner-Price-Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "Avia-Hoffelner-Price-Api.csproj" -c Release -r linux-x64 -o /app/publish /p:UseAppHost=false /p:PublishAot=false
 
 FROM base AS final
 WORKDIR /app

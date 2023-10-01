@@ -17,8 +17,10 @@ public static class AviaServiceCollectionExtensions {
 
     public static IEndpointRouteBuilder UseAviaServices(this IEndpointRouteBuilder app) {
         var aviaApi = app.MapGroup("/avia");
-        aviaApi.MapGet("/", async (IAviaService aviaService, CancellationToken cancellationToken)
+        aviaApi.MapGet("/entries", async (IAviaService aviaService, CancellationToken cancellationToken)
             => await aviaService.GetAviaData(cancellationToken));
+        aviaApi.MapGet("/entries/today", async (IAviaService aviaService, CancellationToken cancellationToken)
+            => await aviaService.GetCurrentAviaData(cancellationToken));
         return app;
     }
 }
