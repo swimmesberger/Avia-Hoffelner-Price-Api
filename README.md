@@ -115,3 +115,5 @@ rest:
             force_update: true
             unit_of_measurement: "EUR/kWh"
 ````
+
+Docker: https://hub.docker.com/r/swimmes/avia-hoffelner-price-api
