@@ -106,12 +106,12 @@ rest:
             device_class: monetary
             value_template: "{{ value_json.grossPriceCtkWH/100.0 }}"
             force_update: true
-            unit_of_measurement: "€"
+            unit_of_measurement: "EUR/kWh"
 
           - name: "NetPriceCtkwH"
             unique_id: "1f9be0c9-e056-4677-af44-3d635d236c67"
             device_class: monetary
             value_template: "{{ value_json.netPriceCtkwH/100.0 }}"
             force_update: true
-            unit_of_measurement: "€"
+            unit_of_measurement: "EUR/kWh"
 ````
