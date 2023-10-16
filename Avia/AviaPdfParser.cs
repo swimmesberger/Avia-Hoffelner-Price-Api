@@ -72,7 +72,10 @@ public sealed class AviaPdfParser : IAviaPdfParser {
                 // remove ct/kWh from last column
                 idx == 0 ? x.AsReadOnly() : x[1..^1].AsReadOnly())
             .ToList();
-        return new RawTable(postProcessedRows, 15);
+        if (rows.Count == 0) {
+            return new RawTable(postProcessedRows, 0);
+        }
+        return new RawTable(postProcessedRows, rows[0].Count);
     }
 
     private AviaData ParseTable(RawTable table) {
